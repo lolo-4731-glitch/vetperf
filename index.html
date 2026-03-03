@@ -263,6 +263,14 @@ const DEHYDRATION_OPTIONS = [
 ];
 const TABS = [{icon:"🏠",label:"Élevage"},{icon:"🐄",label:"Veau"},{icon:"💉",label:"Perfusion"},{icon:"📊",label:"Récap"},{icon:"📂",label:"Historique"}];
 
+const SOLUTES_DATA = [
+  {key:"carbifusion",name:"Carbifusion",bicarb:28,glucose:0,other:"NaHCO₃ pur (56 mg/mL)"},
+  {key:"spe2411",name:"Spéciale 2411",bicarb:20,glucose:7.5,other:"+ saccharose 7.5 g"},
+  {key:"lodevil",name:"Lodevil",bicarb:2.1,glucose:5.4,other:"NaCl, KCl, MgCl₂, acétate"},
+  {key:"glucose5",name:"Glucose 5%",bicarb:0,glucose:25,other:"Isotonique"},
+  {key:"dhydrat",name:"D-Hydrat",bicarb:5,glucose:25,other:"NaCl 4.5 g"},
+];
+
 /* ============================================================
    MAIN APP
    ============================================================ */
@@ -321,6 +329,7 @@ const App = () => {
 
   // Tab 3: Perfusion
   const [perfusion, setPerfusion] = useState(null);
+  const [selectedSolutes, setSelectedSolutes] = useState({carbifusion:0,spe2411:0,lodevil:0,glucose5:0,dhydrat:0});
 
   // ============ HISTORY SYSTEM ============
   const [history, setHistory] = useState([]);
@@ -404,7 +413,7 @@ const App = () => {
     setCalfDehydration(null); setCanStand(null); setSuckReflex(null); setDiarrheaDuration("");
     setBgpH(""); setBgpCO2(""); setBgHCO3(""); setBgNa(""); setBgK(""); setBgCl(""); setBgGlucose("");
     setTestRota(null); setTestCorona(null); setTestCrypto(null); setTestColiK99(null); setTestColiCS31A(null);
-    setPerfusion(null); setTab(0);
+    setPerfusion(null); setSelectedSolutes({carbifusion:0,spe2411:0,lodevil:0,glucose5:0,dhydrat:0}); setTab(0);
   }, []);
 
   // Group history by farmer
@@ -472,6 +481,7 @@ const App = () => {
       bicarb_g:bicarb_g.toFixed(1), kSupplement, tempAlert, dehydrationPercent:d,
       glycemiaAlert, glucoseSupplement,
     });
+    setSelectedSolutes({carbifusion:0,spe2411:0,lodevil:0,glucose5:0,dhydrat:0});
     setTab(2);
   }, [calfWeight, calfDehydration, calfTemp, diarrheaDuration, canStand, bgpH, bgHCO3, bgK, bgGlucose]);
 
@@ -767,38 +777,94 @@ const App = () => {
               </div>
             </Card>}
 
-            <Card title="Solutés vétérinaires — Apports / 500 mL" icon="🧴">
-              <div style={{overflowX:"auto"}}>
-                <table style={{width:"100%",borderCollapse:"collapse",fontSize:11,fontFamily:"system-ui,sans-serif"}}>
-                  <thead>
-                    <tr style={{background:"#3D5A3E",color:"#F5F0E8"}}>
-                      <th style={{padding:"7px 6px",textAlign:"left",borderRadius:"6px 0 0 0",fontWeight:700}}>Soluté</th>
-                      <th style={{padding:"7px 6px",textAlign:"center",fontWeight:700}}>NaHCO₃</th>
-                      <th style={{padding:"7px 6px",textAlign:"center",fontWeight:700}}>Glucose</th>
-                      <th style={{padding:"7px 6px",textAlign:"center",borderRadius:"0 6px 0 0",fontWeight:700}}>Autres</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {[
-                      {name:"Carbifusion",bica:"28 g",glucose:"—",other:"NaHCO₃ pur (56 mg/mL)",bg:"#FDFBF7"},
-                      {name:"Spéciale 2411",bica:"20 g",glucose:"7.5 g",other:"+ saccharose 7.5 g",bg:"#F8F5F0"},
-                      {name:"Lodevil",bica:"2.1 g",glucose:"5.4 g",other:"NaCl, KCl, MgCl₂, acétate",bg:"#FDFBF7"},
-                      {name:"Glucose 5%",bica:"—",glucose:"25 g",other:"Isotonique",bg:"#F8F5F0"},
-                      {name:"D-Hydrat",bica:"—",glucose:"25 g",other:"NaCl 4.5 g",bg:"#FDFBF7"},
-                    ].map((s,i)=>(
-                      <tr key={i} style={{background:s.bg}}>
-                        <td style={{padding:"7px 6px",fontWeight:700,color:"#3D5A3E",borderBottom:"1px solid rgba(0,0,0,0.05)"}}>{s.name}</td>
-                        <td style={{padding:"7px 6px",textAlign:"center",fontWeight:600,color:s.bica!=="—"?"#A0784C":"#BBB",borderBottom:"1px solid rgba(0,0,0,0.05)"}}>{s.bica}</td>
-                        <td style={{padding:"7px 6px",textAlign:"center",fontWeight:600,color:s.glucose!=="—"?"#4A7C59":"#BBB",borderBottom:"1px solid rgba(0,0,0,0.05)"}}>{s.glucose}</td>
-                        <td style={{padding:"7px 6px",textAlign:"center",fontSize:10,color:"#7A6B59",borderBottom:"1px solid rgba(0,0,0,0.05)"}}>{s.other}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              {parseFloat(perfusion.bicarb_g)>0&&<div style={{marginTop:10,padding:"8px 10px",borderRadius:8,background:"rgba(160,120,76,0.06)",border:"1px solid rgba(160,120,76,0.12)",fontSize:11,color:"#5A4530",fontFamily:"system-ui,sans-serif"}}>
-                <strong>Besoin calculé : {perfusion.bicarb_g} g NaHCO₃</strong> → ex : {(parseFloat(perfusion.bicarb_g)/28).toFixed(1)} fl. Carbifusion ou {(parseFloat(perfusion.bicarb_g)/20).toFixed(1)} fl. Spé. 2411
-              </div>}
+            <Card title="Solutés vétérinaires — Sélection" icon="🧴">
+              {(()=>{
+                const bicarbNeed = parseFloat(perfusion.bicarb_g)||0;
+                const bicarbProvided = SOLUTES_DATA.reduce((sum,s)=>sum + s.bicarb * (selectedSolutes[s.key]||0), 0);
+                const bicarbRemaining = bicarbNeed - bicarbProvided;
+                const glucoseProvided = SOLUTES_DATA.reduce((sum,s)=>sum + s.glucose * (selectedSolutes[s.key]||0), 0);
+                const totalFlacons = Object.values(selectedSolutes).reduce((a,b)=>a+b,0);
+                const totalVolume = totalFlacons * 500;
+                return <>
+                  <div style={{display:"flex",flexDirection:"column",gap:6}}>
+                    {SOLUTES_DATA.map((s,i)=>{
+                      const qty = selectedSolutes[s.key]||0;
+                      const isSelected = qty > 0;
+                      return (
+                        <div key={s.key} style={{
+                          borderRadius:10,padding:"10px 12px",
+                          border:isSelected?`2px solid #3D5A3E`:"2px solid rgba(0,0,0,0.07)",
+                          background:isSelected?"rgba(61,90,62,0.06)":"#FFFDF8",
+                          transition:"all 0.2s",
+                        }}>
+                          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                            <div style={{flex:1}}>
+                              <div style={{fontWeight:700,fontSize:13,color:isSelected?"#3D5A3E":"#5A4D3E",fontFamily:"system-ui,sans-serif"}}>{s.name}</div>
+                              <div style={{fontSize:10,color:"#7A6B59",fontFamily:"system-ui,sans-serif",marginTop:2}}>
+                                {s.bicarb>0?`NaHCO₃ ${s.bicarb}g`:"—"}
+                                {s.bicarb>0&&s.glucose>0?" · ":""}
+                                {s.glucose>0?`Glucose ${s.glucose}g`:""}
+                                {!s.bicarb&&!s.glucose?"—":""}
+                                {" / flacon"}
+                              </div>
+                            </div>
+                            <div style={{display:"flex",alignItems:"center",gap:4}}>
+                              <button onClick={()=>setSelectedSolutes(prev=>({...prev,[s.key]:Math.max(0,prev[s.key]-1)}))} style={{
+                                width:32,height:32,borderRadius:8,border:"2px solid rgba(0,0,0,0.1)",background:"#FFFDF8",
+                                fontSize:18,fontWeight:800,cursor:"pointer",color:qty>0?"#C75B2A":"#CCC",
+                                display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"system-ui,sans-serif",
+                              }}>−</button>
+                              <span style={{width:28,textAlign:"center",fontWeight:800,fontSize:16,color:isSelected?"#3D5A3E":"#AAA",fontFamily:"'Georgia',serif"}}>{qty}</span>
+                              <button onClick={()=>setSelectedSolutes(prev=>({...prev,[s.key]:prev[s.key]+1}))} style={{
+                                width:32,height:32,borderRadius:8,border:"2px solid rgba(61,90,62,0.3)",background:"rgba(61,90,62,0.06)",
+                                fontSize:18,fontWeight:800,cursor:"pointer",color:"#3D5A3E",
+                                display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"system-ui,sans-serif",
+                              }}>+</button>
+                            </div>
+                          </div>
+                          {isSelected&&<div style={{marginTop:6,fontSize:10,color:"#5A4D3E",fontFamily:"system-ui,sans-serif"}}>
+                            → {qty} fl. × 500 mL = {qty*500} mL
+                            {s.bicarb>0?` · ${(s.bicarb*qty).toFixed(1)}g NaHCO₃`:""}
+                            {s.glucose>0?` · ${(s.glucose*qty).toFixed(1)}g glucose`:""}
+                          </div>}
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {totalFlacons>0&&<div style={{marginTop:12,borderRadius:10,border:"2px solid #3D5A3E",background:"rgba(61,90,62,0.04)",padding:"12px 14px"}}>
+                    <div style={{fontWeight:700,fontSize:12,color:"#3D5A3E",fontFamily:"system-ui,sans-serif",marginBottom:8}}>📋 Récapitulatif solutés sélectionnés</div>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"4px 0",fontSize:12,fontFamily:"system-ui,sans-serif",color:"#5A4D3E"}}>
+                      <span>Volume total</span>
+                      <span style={{fontWeight:700}}>{totalVolume} mL ({(totalVolume/1000).toFixed(1)} L)</span>
+                    </div>
+                    {bicarbNeed>0&&<>
+                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"4px 0",fontSize:12,fontFamily:"system-ui,sans-serif",color:"#A0784C"}}>
+                        <span>NaHCO₃ apporté</span>
+                        <span style={{fontWeight:700}}>{bicarbProvided.toFixed(1)} g / {bicarbNeed.toFixed(1)} g besoin</span>
+                      </div>
+                      <div style={{height:8,borderRadius:4,background:"#E8E0D0",overflow:"hidden",margin:"4px 0 6px"}}>
+                        <div style={{height:"100%",borderRadius:4,transition:"width 0.3s",
+                          width:`${Math.min(100,(bicarbProvided/bicarbNeed)*100)}%`,
+                          background:bicarbRemaining<=0?"#4A7C59":bicarbRemaining<bicarbNeed*0.2?"#F4C95D":"#C75B2A",
+                        }}/>
+                      </div>
+                      {bicarbRemaining>0
+                        ?<div style={{fontSize:11,fontWeight:700,color:"#C75B2A",fontFamily:"system-ui,sans-serif"}}>
+                          ⚠️ Reste {bicarbRemaining.toFixed(1)} g NaHCO₃ à couvrir
+                        </div>
+                        :<div style={{fontSize:11,fontWeight:700,color:"#4A7C59",fontFamily:"system-ui,sans-serif"}}>
+                          ✓ Besoin en NaHCO₃ couvert ({bicarbProvided.toFixed(1)} g ≥ {bicarbNeed.toFixed(1)} g)
+                        </div>
+                      }
+                    </>}
+                    {glucoseProvided>0&&<div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"4px 0",fontSize:12,fontFamily:"system-ui,sans-serif",color:"#4A7C59",marginTop:4}}>
+                      <span>Glucose apporté</span>
+                      <span style={{fontWeight:700}}>{glucoseProvided.toFixed(1)} g</span>
+                    </div>}
+                  </div>}
+                </>;
+              })()}
             </Card>
 
             <Card title="Voie orale (SRO)" icon="🍼">
