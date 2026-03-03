@@ -261,7 +261,7 @@ const DEHYDRATION_OPTIONS = [
   {value:10,label:"Sévère (10%)",desc:"Yeux très enfoncés, pli cutané > 6s, décubitus",color:"#E07A5F"},
   {value:12,label:"Critique (12%)",desc:"Choc, extrémités froides, coma",color:"#C1292E"},
 ];
-const TABS = [{icon:"🏠",label:"Élevage"},{icon:"🐄",label:"Veau"},{icon:"💉",label:"Perfusion"},{icon:"📊",label:"Récap"}];
+const TABS = [{icon:"🏠",label:"Élevage"},{icon:"🐄",label:"Veau"},{icon:"💉",label:"Perfusion"},{icon:"📊",label:"Récap"},{icon:"📂",label:"Historique"}];
 
 /* ============================================================
    MAIN APP
@@ -322,6 +322,99 @@ const App = () => {
   // Tab 3: Perfusion
   const [perfusion, setPerfusion] = useState(null);
 
+  // ============ HISTORY SYSTEM ============
+  const [history, setHistory] = useState([]);
+  const [historyLoaded, setHistoryLoaded] = useState(false);
+  const [selectedFarmer, setSelectedFarmer] = useState(null);
+  const [confirmDelete, setConfirmDelete] = useState(null);
+
+  // Load history on mount
+  const loadHistory = useCallback(() => {
+    try {
+      const raw = localStorage.getItem("fiches-history");
+      if (raw) setHistory(JSON.parse(raw));
+    } catch(e) { /* no data yet */ }
+    setHistoryLoaded(true);
+  }, []);
+
+  // Save history
+  const saveHistory = useCallback((newHistory) => {
+    try {
+      localStorage.setItem("fiches-history", JSON.stringify(newHistory));
+    } catch(e) { console.error("Storage error:", e); }
+  }, []);
+
+  // Auto-load on mount
+  if (!historyLoaded) loadHistory();
+
+  // Save current fiche
+  const saveFiche = useCallback(() => {
+    const fiche = {
+      id: Date.now().toString(),
+      date: new Date().toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}),
+      farmer: { name:farmerName, address:farmerAddress, city:farmerCity, phone:farmerPhone, email:farmerEmail, herd:farmerHerd },
+      diarrheaHistory: { agents:diarrheaHist, prevCases, mortality, vaccProtocol, colostrum, notes },
+      calf: { id:calfId, age:calfAge, weight:calfWeight, temp:calfTemp, dehydration:calfDehydration, canStand, suckReflex, diarrheaDuration },
+      bloodGas: { pH:bgpH, pCO2:bgpCO2, HCO3:bgHCO3, BE:bgBE, Na:bgNa, K:bgK, Cl:bgCl, glucose:bgGlucose },
+      tests: { rota:testRota, corona:testCorona, crypto:testCrypto, coliK99:testColiK99, coliCS31A:testColiCS31A },
+      perfusion,
+    };
+    const newHistory = [fiche, ...history].slice(0, 200); // max 200 fiches
+    setHistory(newHistory);
+    saveHistory(newHistory);
+    return fiche;
+  }, [farmerName,farmerAddress,farmerCity,farmerPhone,farmerEmail,farmerHerd,diarrheaHist,prevCases,mortality,vaccProtocol,colostrum,notes,calfId,calfAge,calfWeight,calfTemp,calfDehydration,canStand,suckReflex,diarrheaDuration,bgpH,bgpCO2,bgHCO3,bgBE,bgNa,bgK,bgCl,bgGlucose,testRota,testCorona,testCrypto,testColiK99,testColiCS31A,perfusion,history,saveHistory]);
+
+  // Restore a fiche
+  const restoreFiche = useCallback((fiche) => {
+    const f = fiche.farmer || {};
+    setFarmerName(f.name||""); setFarmerAddress(f.address||""); setFarmerCity(f.city||"");
+    setFarmerPhone(f.phone||""); setFarmerEmail(f.email||""); setFarmerHerd(f.herd||"");
+    const dh = fiche.diarrheaHistory || {};
+    setDiarrheaHist(dh.agents||[]); setPrevCases(dh.prevCases||""); setMortality(dh.mortality||"");
+    setVaccProtocol(dh.vaccProtocol||""); setColostrum(dh.colostrum||""); setNotes(dh.notes||"");
+    const c = fiche.calf || {};
+    setCalfId(c.id||""); setCalfAge(c.age||""); setCalfWeight(c.weight||""); setCalfTemp(c.temp||"");
+    setCalfDehydration(c.dehydration||null); setCanStand(c.canStand!=null?c.canStand:null);
+    setSuckReflex(c.suckReflex!=null?c.suckReflex:null); setDiarrheaDuration(c.diarrheaDuration||"");
+    const bg = fiche.bloodGas || {};
+    setBgpH(bg.pH||""); setBgpCO2(bg.pCO2||""); setBgHCO3(bg.HCO3||"");
+    setBgNa(bg.Na||""); setBgK(bg.K||""); setBgCl(bg.Cl||""); setBgGlucose(bg.glucose||"");
+    const t = fiche.tests || {};
+    setTestRota(t.rota!=null?t.rota:null); setTestCorona(t.corona!=null?t.corona:null);
+    setTestCrypto(t.crypto!=null?t.crypto:null); setTestColiK99(t.coliK99!=null?t.coliK99:null);
+    setTestColiCS31A(t.coliCS31A!=null?t.coliCS31A:null);
+    setPerfusion(fiche.perfusion||null);
+    setTab(0);
+  }, []);
+
+  // Delete a fiche
+  const deleteFiche = useCallback((ficheId) => {
+    const newHistory = history.filter(f => f.id !== ficheId);
+    setHistory(newHistory);
+    saveHistory(newHistory);
+    setConfirmDelete(null);
+  }, [history, saveHistory]);
+
+  // New fiche (reset all)
+  const resetAll = useCallback(() => {
+    setFarmerName(""); setFarmerAddress(""); setFarmerCity(""); setFarmerPhone(""); setFarmerEmail(""); setFarmerHerd("");
+    setDiarrheaHist([]); setPrevCases(""); setMortality(""); setVaccProtocol(""); setColostrum(""); setNotes("");
+    setCalfId(""); setCalfAge(""); setCalfWeight(""); setCalfTemp("");
+    setCalfDehydration(null); setCanStand(null); setSuckReflex(null); setDiarrheaDuration("");
+    setBgpH(""); setBgpCO2(""); setBgHCO3(""); setBgNa(""); setBgK(""); setBgCl(""); setBgGlucose("");
+    setTestRota(null); setTestCorona(null); setTestCrypto(null); setTestColiK99(null); setTestColiCS31A(null);
+    setPerfusion(null); setTab(0);
+  }, []);
+
+  // Group history by farmer
+  const farmerGroups = history.reduce((acc, fiche) => {
+    const key = (fiche.farmer && fiche.farmer.name) || "Sans nom";
+    if (!acc[key]) acc[key] = [];
+    acc[key].push(fiche);
+    return acc;
+  }, {});
+
   const toggleAgent = useCallback((id) => {
     setDiarrheaHist(prev => prev.includes(id) ? prev.filter(x=>x!==id) : [...prev, id]);
   }, []);
@@ -381,6 +474,13 @@ const App = () => {
     });
     setTab(2);
   }, [calfWeight, calfDehydration, calfTemp, diarrheaDuration, canStand, bgpH, bgHCO3, bgK, bgGlucose]);
+
+  // Auto-save fiche when perfusion is set
+  const prevPerfRef = useRef(null);
+  if (perfusion && perfusion !== prevPerfRef.current && calfWeight) {
+    prevPerfRef.current = perfusion;
+    setTimeout(() => saveFiche(), 100);
+  }
 
   // PDF export via hidden iframe (compatible sandbox)
   const [showPrintFrame, setShowPrintFrame] = useState(false);
@@ -797,6 +897,98 @@ const App = () => {
           <div style={{padding:"12px",borderRadius:9,background:"rgba(0,0,0,0.03)",fontSize:10,color:"#8B7B69",lineHeight:1.5,fontFamily:"system-ui,sans-serif",marginTop:12}}>
             ⚕️ <strong>Avertissement :</strong> Outil d'aide à la décision. Ne remplace pas le jugement clinique vétérinaire.
           </div>
+        </div>}
+
+        {/* ============ TAB 4: HISTORIQUE ============ */}
+        {tab===4&&<div>
+          <div style={{display:"flex",gap:8,marginBottom:14}}>
+            <button onClick={resetAll} style={{
+              flex:1,padding:"12px",borderRadius:11,border:"none",
+              background:"linear-gradient(135deg,#3D5A3E,#2C4A2E)",color:"#F5F0E8",
+              fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"'Georgia',serif",
+              boxShadow:"0 4px 14px rgba(44,74,46,0.3)",
+            }}>＋ Nouvelle fiche</button>
+          </div>
+
+          {!historyLoaded?<Card title="Chargement..." icon="⏳"><p style={{fontSize:13,color:"#7A6B59",fontFamily:"system-ui,sans-serif"}}>Lecture de l'historique...</p></Card>
+          :history.length===0?<Card title="Aucune fiche enregistrée" icon="📭"><p style={{fontSize:13,color:"#7A6B59",fontFamily:"system-ui,sans-serif"}}>Les fiches seront automatiquement sauvegardées lors du calcul de perfusion.</p></Card>
+          :selectedFarmer===null?<>
+            <Card title={`Éleveurs (${Object.keys(farmerGroups).length})`} icon="👥">
+              <div style={{display:"flex",flexDirection:"column",gap:6}}>
+                {Object.entries(farmerGroups).map(([name, fiches])=>(
+                  <button key={name} onClick={()=>setSelectedFarmer(name)} style={{
+                    display:"flex",justifyContent:"space-between",alignItems:"center",
+                    padding:"12px 14px",borderRadius:10,border:"2px solid rgba(61,90,62,0.12)",
+                    background:"#FDFBF7",cursor:"pointer",textAlign:"left",
+                  }}>
+                    <div>
+                      <div style={{fontWeight:700,fontSize:14,color:"#3D5A3E",fontFamily:"'Georgia',serif"}}>{name}</div>
+                      <div style={{fontSize:11,color:"#7A6B59",fontFamily:"system-ui,sans-serif",marginTop:2}}>
+                        {fiches.length} fiche{fiches.length>1?"s":""} — dernière : {fiches[0].date}
+                      </div>
+                    </div>
+                    <span style={{fontSize:18,color:"#3D5A3E"}}>›</span>
+                  </button>
+                ))}
+              </div>
+            </Card>
+          </>
+          :<>
+            <button onClick={()=>{setSelectedFarmer(null);setConfirmDelete(null);}} style={{
+              display:"flex",alignItems:"center",gap:6,padding:"8px 0",border:"none",background:"none",
+              cursor:"pointer",fontSize:13,fontWeight:700,color:"#3D5A3E",fontFamily:"system-ui,sans-serif",marginBottom:10,
+            }}>← Retour aux éleveurs</button>
+
+            <Card title={selectedFarmer} icon="🏠">
+              <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                {(farmerGroups[selectedFarmer]||[]).map(fiche=>(
+                  <div key={fiche.id} style={{
+                    borderRadius:10,border:"1px solid rgba(61,90,62,0.12)",background:"#FFFDF8",overflow:"hidden",
+                  }}>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 13px"}}>
+                      <div style={{flex:1}}>
+                        <div style={{fontWeight:700,fontSize:13,color:"#2C2416",fontFamily:"system-ui,sans-serif"}}>
+                          {fiche.calf&&fiche.calf.id?`🐄 ${fiche.calf.id}`:"Veau non identifié"}
+                        </div>
+                        <div style={{fontSize:11,color:"#7A6B59",fontFamily:"system-ui,sans-serif",marginTop:2}}>
+                          {fiche.date}
+                          {fiche.calf&&fiche.calf.weight?` — ${fiche.calf.weight} kg`:""}
+                          {fiche.calf&&fiche.calf.dehydration?` — Déshydr. ${fiche.calf.dehydration}%`:""}
+                        </div>
+                        {fiche.perfusion&&<div style={{display:"flex",gap:6,marginTop:5,flexWrap:"wrap"}}>
+                          <span style={{fontSize:10,padding:"3px 7px",borderRadius:10,background:"rgba(61,90,62,0.08)",color:"#3D5A3E",fontWeight:700,fontFamily:"system-ui,sans-serif"}}>
+                            Vol: {fiche.perfusion.totalVolume}L
+                          </span>
+                          {fiche.bloodGas&&fiche.bloodGas.pH&&<span style={{fontSize:10,padding:"3px 7px",borderRadius:10,background:"rgba(139,115,85,0.08)",color:"#5A4D3E",fontWeight:600,fontFamily:"system-ui,sans-serif"}}>
+                            pH {fiche.bloodGas.pH}
+                          </span>}
+                          {fiche.bloodGas&&fiche.bloodGas.BE&&<span style={{fontSize:10,padding:"3px 7px",borderRadius:10,background:"rgba(199,91,42,0.08)",color:"#C75B2A",fontWeight:600,fontFamily:"system-ui,sans-serif"}}>
+                            BE {fiche.bloodGas.BE}
+                          </span>}
+                        </div>}
+                      </div>
+                    </div>
+                    <div style={{display:"flex",borderTop:"1px solid rgba(0,0,0,0.05)"}}>
+                      <button onClick={()=>restoreFiche(fiche)} style={{
+                        flex:1,padding:"9px",border:"none",background:"rgba(61,90,62,0.04)",
+                        color:"#3D5A3E",fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"system-ui,sans-serif",
+                      }}>📋 Charger</button>
+                      {confirmDelete===fiche.id
+                        ?<button onClick={()=>deleteFiche(fiche.id)} style={{
+                          flex:1,padding:"9px",border:"none",background:"rgba(193,41,46,0.1)",
+                          color:"#C1292E",fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"system-ui,sans-serif",
+                        }}>Confirmer suppression</button>
+                        :<button onClick={()=>setConfirmDelete(fiche.id)} style={{
+                          flex:1,padding:"9px",border:"none",background:"transparent",
+                          color:"#AAA",fontWeight:600,fontSize:12,cursor:"pointer",fontFamily:"system-ui,sans-serif",
+                        }}>🗑 Supprimer</button>
+                      }
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          </>}
         </div>}
       </div>
     </div>
