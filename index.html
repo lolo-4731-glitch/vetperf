@@ -1,24 +1,4 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Réhydratation Veau — Calculateur de fluidothérapie</title>
-  <meta name="description" content="Calculateur de fluidothérapie pour veaux diarrhéiques — usage professionnel vétérinaire">
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐄</text></svg>">
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
-    #root { min-height: 100vh; }
-  </style>
-  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-</head>
-<body>
-  <div id="root"></div>
-  <script type="text/babel">
-    const { useState, useRef, useCallback } = React;
+import { useState, useRef, useCallback } from "react";
 
 /* ============================================================
    PASSWORD GATE
@@ -446,22 +426,10 @@ const App = () => {
     <div class="row"><span class="lbl">Pertes :</span><span>${perfusion.ongoingLosses} L</span></div>
     <div class="total-row"><span>Volume total 24h</span><span>${perfusion.totalVolume} L</span></div>
     ${perfusion.needsIV?`<div class="pbox"><h3>Voie IV</h3>
-    <div class="row"><span class="lbl">Volume IV :</span><span>${perfusion.ivVolume} L (RL / NaCl 0.9%)</span></div>
-    <div class="row"><span class="lbl">Débit :</span><span>~${perfusion.ivRate} mL/h (bolus 2h)</span></div>
+    <div class="row"><span class="lbl">Volume IV :</span><span>${perfusion.ivVolume} L (= ½ du déficit)</span></div>
     ${parseFloat(perfusion.bicarb_mmol)>0?`<div class="row"><span class="lbl">NaHCO₃ :</span><span>${perfusion.bicarb_g} g</span></div>`:""}
     ${perfusion.kSupplement?`<div class="row"><span class="lbl">K⁺ :</span><span>${perfusion.kSupplement}</span></div>`:""}
     ${perfusion.glucoseSupplement?`<div class="row"><span class="lbl">Glycémie :</span><span style="color:${perfusion.glycemiaAlert==="danger"?"#C1292E":"#C75B2A"}">${perfusion.glucoseSupplement}</span></div>`:""}</div>`:""}
-
-    <div class="pbox" style="border-color:#888;margin-top:6px;"><h3 style="color:#5A4D3E;">Solutés vétérinaires — Apports / 500 mL</h3>
-    <table style="font-size:9pt;margin-top:4px;">
-    <tr style="background:#3D5A3E;color:white;"><th style="text-align:left;">Soluté</th><th style="text-align:center;">NaHCO₃</th><th style="text-align:center;">Glucose</th><th style="text-align:center;">Autres</th></tr>
-    <tr><td style="border-bottom:1px solid #ddd;font-weight:bold;">Carbifusion</td><td style="text-align:center;border-bottom:1px solid #ddd;">28 g</td><td style="text-align:center;border-bottom:1px solid #ddd;">—</td><td style="text-align:center;border-bottom:1px solid #ddd;font-size:8pt;">NaHCO₃ pur</td></tr>
-    <tr style="background:#f8f5f0;"><td style="border-bottom:1px solid #ddd;font-weight:bold;">Spéciale 2411</td><td style="text-align:center;border-bottom:1px solid #ddd;">20 g</td><td style="text-align:center;border-bottom:1px solid #ddd;">7.5 g</td><td style="text-align:center;border-bottom:1px solid #ddd;font-size:8pt;">+ saccharose 7.5 g</td></tr>
-    <tr><td style="border-bottom:1px solid #ddd;font-weight:bold;">Lodevil</td><td style="text-align:center;border-bottom:1px solid #ddd;">2.1 g</td><td style="text-align:center;border-bottom:1px solid #ddd;">5.4 g</td><td style="text-align:center;border-bottom:1px solid #ddd;font-size:8pt;">NaCl, KCl, MgCl₂, acétate</td></tr>
-    <tr style="background:#f8f5f0;"><td style="border-bottom:1px solid #ddd;font-weight:bold;">Glucose 5%</td><td style="text-align:center;border-bottom:1px solid #ddd;">—</td><td style="text-align:center;border-bottom:1px solid #ddd;">25 g</td><td style="text-align:center;border-bottom:1px solid #ddd;font-size:8pt;">Isotonique</td></tr>
-    <tr><td style="font-weight:bold;">D-Hydrat</td><td style="text-align:center;">—</td><td style="text-align:center;">25 g</td><td style="text-align:center;font-size:8pt;">NaCl 4.5 g</td></tr>
-    </table>
-    ${parseFloat(perfusion.bicarb_g)>0?`<div style="margin-top:6px;font-size:9pt;color:#5A4530;"><strong>Besoin : ${perfusion.bicarb_g} g NaHCO₃</strong> → ${(parseFloat(perfusion.bicarb_g)/28).toFixed(1)} fl. Carbifusion ou ${(parseFloat(perfusion.bicarb_g)/20).toFixed(1)} fl. Spé. 2411</div>`:""}</div>
 
     <div class="pbox" style="border-color:#4A7C59;margin-top:6px;"><h3 style="color:#4A7C59;">Voie orale (SRO)</h3>
     <div class="row"><span class="lbl">Volume oral :</span><span>${perfusion.oralVolume} L / 24h</span></div>
@@ -661,13 +629,11 @@ const App = () => {
 
             {perfusion.needsIV&&<Card title="Voie intraveineuse" icon="💉">
               <div style={{fontSize:13,color:"#5A4530",fontFamily:"system-ui,sans-serif",lineHeight:1.7}}>
-                <p style={{margin:"0 0 4px"}}><strong>Volume IV :</strong> {perfusion.ivVolume} L (Ringer Lactate / NaCl 0.9%)</p>
-                <p style={{margin:"0 0 4px"}}><strong>Débit :</strong> ~{perfusion.ivRate} mL/h (bolus 2h)</p>
+                <p style={{margin:"0 0 4px"}}><strong>Volume IV :</strong> {perfusion.ivVolume} L (= ½ du déficit)</p>
                 {parseFloat(perfusion.bicarb_mmol)>0&&<div style={{background:"rgba(160,120,76,0.08)",borderRadius:8,padding:"10px 12px",margin:"8px 0",border:"1px solid rgba(160,120,76,0.2)"}}>
                   <p style={{margin:"0 0 3px",fontWeight:700,color:"#A0784C"}}>NaHCO₃</p>
                   <p style={{margin:0}}><strong>{perfusion.bicarb_g} g</strong> de bicarbonate de sodium</p>
                   <p style={{margin:"3px 0 0",fontSize:10,color:"#8B7355"}}>|BE| × poids × 0.6 = {perfusion.bicarb_mmol} mmol → {perfusion.bicarb_g} g</p>
-                  <p style={{margin:"3px 0 0",fontSize:11,color:"#8B7355"}}>Perfuser sur 30-60 min, ne pas mélanger au RL</p>
                 </div>}
                 {perfusion.kSupplement&&<p style={{margin:"6px 0 0",fontSize:12,color:"#C75B2A",fontWeight:600}}>⚠️ {perfusion.kSupplement}</p>}
                 {perfusion.glucoseSupplement&&<div style={{
@@ -726,7 +692,7 @@ const App = () => {
 
             <Card title="Planning suggéré" icon="⏱️">
               <div style={{fontSize:12,fontFamily:"system-ui,sans-serif",color:"#4A3D2E"}}>
-                {perfusion.needsIV&&<TimelineItem time="H0" text={`Bolus IV ${perfusion.ivVolume}L / 2h (${perfusion.ivRate} mL/h)${parseFloat(perfusion.bicarb_mmol)>0?` + NaHCO₃ ${perfusion.bicarb_g}g`:""}`}/>}
+                {perfusion.needsIV&&<TimelineItem time="H0" text={`Bolus IV ${perfusion.ivVolume}L${parseFloat(perfusion.bicarb_mmol)>0?` + NaHCO₃ ${perfusion.bicarb_g}g`:""}`}/>}
                 {Array.from({length:Math.min(perfusion.numberOfFeeds,6)},(_,i)=>{
                   const startH=perfusion.needsIV?2:0;
                   const interval=Math.max(3,Math.floor(24/perfusion.numberOfFeeds));
@@ -774,7 +740,7 @@ const App = () => {
               <span style={{fontSize:16,fontWeight:800,color:sevColor(perfusion.dehydrationPercent),fontFamily:"'Georgia',serif"}}>{perfusion.totalVolume} L</span>
             </div>
             {perfusion.needsIV&&<div style={{fontSize:12,fontFamily:"system-ui,sans-serif",color:"#5A4530",lineHeight:1.6,marginBottom:6}}>
-              <p style={{margin:"0 0 2px"}}><strong>IV :</strong> {perfusion.ivVolume} L à {perfusion.ivRate} mL/h</p>
+              <p style={{margin:"0 0 2px"}}><strong>IV :</strong> {perfusion.ivVolume} L (= ½ du déficit)</p>
               {parseFloat(perfusion.bicarb_mmol)>0&&<p style={{margin:"0 0 2px"}}><strong>NaHCO₃ :</strong> {perfusion.bicarb_g} g</p>}
               {perfusion.glucoseSupplement&&<p style={{margin:"0 0 2px",color:perfusion.glycemiaAlert==="danger"?"#C1292E":"#C75B2A"}}><strong>🩸 </strong>{perfusion.glucoseSupplement}</p>}
             </div>}
@@ -826,8 +792,4 @@ const Root = () => {
   return <App />;
 };
 
-
-    ReactDOM.createRoot(document.getElementById('root')).render(<Root />);
-  </script>
-</body>
-</html>
+export default Root;
