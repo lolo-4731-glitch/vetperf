@@ -142,7 +142,7 @@ const LoginScreen = ({ onLogin }) => {
    ============================================================ */
 const inputS = { padding:"11px 13px", borderRadius:9, border:"2px solid rgba(0,0,0,0.07)", background:"#FFFDF8", fontSize:14, fontFamily:"system-ui,sans-serif", color:"#2C2416", outline:"none", width:"100%", boxSizing:"border-box" };
 const labelS = { display:"block", fontSize:11, fontWeight:700, color:"#5A4D3E", marginBottom:4, fontFamily:"system-ui,sans-serif", textTransform:"uppercase", letterSpacing:"0.5px" };
-const sevColor = (d) => d<=5?"#4A7C59":d<=8?"#D4A017":d<=10?"#C75B2A":"#A01E1E";
+const sevColor = (d) => d<=4?"#4A7C59":d<=7?"#D4A017":d<=10?"#C75B2A":"#A01E1E";
 
 /* ============================================================
    SUB-COMPONENTS (defined OUTSIDE App to avoid re-mount)
@@ -256,10 +256,11 @@ const AGENTS = [
   {id:"crypto",label:"Cryptosporidies"},{id:"salmo",label:"Salmonelles"},{id:"coccid",label:"Coccidiose"},{id:"unknown",label:"Non identifié"},
 ];
 const DEHYDRATION_OPTIONS = [
-  {value:5,label:"Légère (5%)",desc:"Yeux légèrement enfoncés, pli cutané < 3s",color:"#A8D5BA"},
-  {value:8,label:"Modérée (8%)",desc:"Yeux enfoncés, pli cutané 3-6s, muqueuses sèches",color:"#F4C95D"},
-  {value:10,label:"Sévère (10%)",desc:"Yeux très enfoncés, pli cutané > 6s, décubitus",color:"#E07A5F"},
-  {value:12,label:"Critique (12%)",desc:"Choc, extrémités froides, coma",color:"#C1292E"},
+  {value:2,label:"< 2 %",desc:"Énophtalmie : aucune · Pli cutané < 2s · Muqueuses humides",color:"#A8D5BA"},
+  {value:4,label:"2 à 5 %",desc:"Énophtalmie : aucune à très modérée · Pli cutané 2-4s · Muqueuses humides",color:"#7BC47F"},
+  {value:7,label:"6 à 8 %",desc:"Écart très faible globe/orbite · Pli cutané 5-10s · Muqueuses collantes",color:"#F4C95D"},
+  {value:10,label:"9 à 10 %",desc:"Écart < 0,5 cm globe/orbite · Pli cutané 11-15s · Muqueuses collantes à sèches",color:"#E07A5F"},
+  {value:12,label:"11 à 12 %",desc:"Écart 0,5-1 cm globe/orbite · Pli cutané > 16s · Muqueuses sèches",color:"#C1292E"},
 ];
 const TABS = [{icon:"🏠",label:"Élevage"},{icon:"🐄",label:"Veau"},{icon:"💉",label:"Perfusion"},{icon:"📊",label:"Récap"},{icon:"📂",label:"Historique"}];
 
@@ -320,6 +321,16 @@ const App = () => {
 
   const [bgGlucose, setBgGlucose] = useState("");
 
+  // Trou anionique mesuré (analyseur)
+  const [bgTAMeasured, setBgTAMeasured] = useState("");
+  // Trou anionique calculé : TA = (Na + K) - (Cl + HCO3)
+  const computedTA = (() => {
+    const na = parseFloat(bgNa), k = parseFloat(bgK), cl = parseFloat(bgCl), hco3 = parseFloat(bgHCO3);
+    if (!isNaN(na) && !isNaN(k) && !isNaN(cl) && !isNaN(hco3)) return (na + k) - (cl + hco3);
+    return null;
+  })();
+  const bgTACalc = computedTA !== null ? computedTA.toFixed(1) : "";
+
   // Analyse diarrhée
   const [testRota, setTestRota] = useState(null);
   const [testCorona, setTestCorona] = useState(null);
@@ -364,7 +375,7 @@ const App = () => {
       farmer: { name:farmerName, address:farmerAddress, city:farmerCity, phone:farmerPhone, email:farmerEmail, herd:farmerHerd },
       diarrheaHistory: { agents:diarrheaHist, prevCases, mortality, vaccProtocol, colostrum, notes },
       calf: { id:calfId, age:calfAge, weight:calfWeight, temp:calfTemp, dehydration:calfDehydration, canStand, suckReflex, diarrheaDuration },
-      bloodGas: { pH:bgpH, pCO2:bgpCO2, HCO3:bgHCO3, BE:bgBE, Na:bgNa, K:bgK, Cl:bgCl, glucose:bgGlucose },
+      bloodGas: { pH:bgpH, pCO2:bgpCO2, HCO3:bgHCO3, BE:bgBE, Na:bgNa, K:bgK, Cl:bgCl, glucose:bgGlucose, TAMeasured:bgTAMeasured, TACalc:bgTACalc },
       tests: { rota:testRota, corona:testCorona, crypto:testCrypto, coliK99:testColiK99, coliCS31A:testColiCS31A },
       perfusion,
     };
@@ -389,6 +400,7 @@ const App = () => {
     const bg = fiche.bloodGas || {};
     setBgpH(bg.pH||""); setBgpCO2(bg.pCO2||""); setBgHCO3(bg.HCO3||"");
     setBgNa(bg.Na||""); setBgK(bg.K||""); setBgCl(bg.Cl||""); setBgGlucose(bg.glucose||"");
+    setBgTAMeasured(bg.TAMeasured||"");
     const t = fiche.tests || {};
     setTestRota(t.rota!=null?t.rota:null); setTestCorona(t.corona!=null?t.corona:null);
     setTestCrypto(t.crypto!=null?t.crypto:null); setTestColiK99(t.coliK99!=null?t.coliK99:null);
@@ -411,7 +423,7 @@ const App = () => {
     setDiarrheaHist([]); setPrevCases(""); setMortality(""); setVaccProtocol(""); setColostrum(""); setNotes("");
     setCalfId(""); setCalfAge(""); setCalfWeight(""); setCalfTemp("");
     setCalfDehydration(null); setCanStand(null); setSuckReflex(null); setDiarrheaDuration("");
-    setBgpH(""); setBgpCO2(""); setBgHCO3(""); setBgNa(""); setBgK(""); setBgCl(""); setBgGlucose("");
+    setBgpH(""); setBgpCO2(""); setBgHCO3(""); setBgNa(""); setBgK(""); setBgCl(""); setBgGlucose(""); setBgTAMeasured("");
     setTestRota(null); setTestCorona(null); setTestCrypto(null); setTestColiK99(null); setTestColiCS31A(null);
     setPerfusion(null); setSelectedSolutes({carbifusion:0,spe2411:0,lodevil:0,glucose5:0,dhydrat:0}); setTab(0);
   }, []);
@@ -437,13 +449,16 @@ const App = () => {
     const dur = parseFloat(diarrheaDuration) || 1;
     const ongoingLosses = dur > 2 ? w * 0.04 : w * 0.02;
     const totalVolume = deficit + maintenance + ongoingLosses;
-    const needsIV = d >= 5 || canStand === false;
+    const be = parseFloat(bgBE);
+    const gly = parseFloat(bgGlucose);
+    const hasAcidosis = !isNaN(be) && be < -5;
+    const hasHypoglycemia = !isNaN(gly) && gly < 60;
+    const needsIV = d >= 5 || canStand === false || hasAcidosis || hasHypoglycemia;
     const ivVolume = needsIV ? Math.min(deficit * 0.5, w * 0.08) : 0;
     const oralVolume = totalVolume - ivVolume;
     const maxPerFeed = Math.min(2, w * 0.05);
     const numberOfFeeds = Math.ceil(oralVolume / maxPerFeed);
     const volumePerFeed = oralVolume / numberOfFeeds;
-    const be = parseFloat(bgBE);
     let bicarb_mmol = 0, bicarb_g = 0;
     if (!isNaN(be) && be < 0) {
       bicarb_mmol = Math.abs(be) * w * 0.6; // EB (mmol/L) × poids vif × 0.6
@@ -458,7 +473,6 @@ const App = () => {
       else if (kVal > 5.5) kSupplement = "Hyperkaliémie – NE PAS supplémenter K+";
     }
     // Glycémie
-    const gly = parseFloat(bgGlucose);
     let glycemiaAlert = null;
     let glucoseSupplement = "";
     if (!isNaN(gly)) {
@@ -724,6 +738,38 @@ const App = () => {
                 <div style={{flex:1}}><label style={labelS}>Cl⁻ (mmol/L)</label><input type="number" step="0.1" value={bgCl} onChange={e=>setBgCl(e.target.value)} placeholder="100" style={inputS}/></div>
                 <div style={{flex:1}}><label style={labelS}>Glucose (mg/dL)</label><input type="number" step="1" value={bgGlucose} onChange={e=>setBgGlucose(e.target.value)} placeholder="80" style={inputS}/></div>
               </div>
+              <div style={{display:"flex",gap:8}}>
+                <div style={{flex:1}}><label style={labelS}>TA mesuré (mmol/L)</label><input type="number" step="0.1" value={bgTAMeasured} onChange={e=>setBgTAMeasured(e.target.value)} placeholder="20" style={inputS}/></div>
+                <div style={{flex:1}}>
+                  <label style={labelS}>TA calculé (mmol/L)</label>
+                  <div style={{
+                    padding:"11px 13px",borderRadius:9,fontSize:14,fontFamily:"system-ui,sans-serif",
+                    background:bgTACalc?"rgba(61,90,62,0.06)":"rgba(0,0,0,0.03)",
+                    border:bgTACalc?"1px solid rgba(61,90,62,0.15)":"1px solid rgba(0,0,0,0.06)",
+                    color:bgTACalc?(parseFloat(bgTACalc)>20?"#C1292E":"#4A7C59"):"#AAA",
+                    fontWeight:700,minHeight:18,
+                  }}>
+                    {bgTACalc ? `${bgTACalc} mmol/L` : "Saisir Na⁺, K⁺, Cl⁻, HCO₃⁻"}
+                  </div>
+                  <p style={{margin:"3px 0 0",fontSize:9,color:"#8B7B69",fontFamily:"system-ui,sans-serif"}}>
+                    TA = (Na⁺ + K⁺) − (Cl⁻ + HCO₃⁻)
+                  </p>
+                </div>
+              </div>
+              {bgTACalc&&<div style={{
+                borderRadius:8,padding:"10px 12px",marginTop:4,
+                background:parseFloat(bgTACalc)>20?"rgba(193,41,46,0.06)":"rgba(74,124,89,0.06)",
+                border:`1px solid ${parseFloat(bgTACalc)>20?"rgba(193,41,46,0.15)":"rgba(74,124,89,0.15)"}`,
+              }}>
+                <p style={{margin:0,fontSize:12,fontWeight:700,color:parseFloat(bgTACalc)>20?"#C1292E":"#C75B2A",fontFamily:"system-ui,sans-serif"}}>
+                  {parseFloat(bgTACalc)>20?"⬆ TA augmenté":"TA normal"}
+                </p>
+                <p style={{margin:"3px 0 0",fontSize:11,color:"#5A4D3E",fontFamily:"system-ui,sans-serif"}}>
+                  {parseFloat(bgTACalc)>20
+                    ?"Acidose liée à une accumulation de lactate (D ou L-lactate)"
+                    :"Acidose liée à une perte de bicarbonates (diarrhée sécrétoire)"}
+                </p>
+              </div>}
             </div>
           </Card>
 
@@ -908,6 +954,18 @@ const App = () => {
             <Gauge label="Bicarbonates (HCO₃⁻)" value={bgHCO3} min={5} max={40} unit="mmol/L" low={22} high={30} lowLabel="Bas" highLabel="Élevé" colorStops="linear-gradient(to right,#C1292E 0%,#C75B2A 30%,#F4C95D 40%,#4A7C59 50%,#4A7C59 65%,#F4C95D 75%,#C1292E 100%)"/>
             <Gauge label="Potassium (K⁺)" value={bgK} min={2} max={8} unit="mmol/L" low={3.5} high={5.5} lowLabel="Hypokaliémie" highLabel="Hyperkaliémie" colorStops="linear-gradient(to right,#C1292E 0%,#C75B2A 15%,#F4C95D 25%,#4A7C59 35%,#4A7C59 60%,#F4C95D 70%,#C75B2A 85%,#C1292E 100%)"/>
             <Gauge label="Glucose" value={bgGlucose} min={20} max={200} unit="mg/dL" low={60} high={120} lowLabel="Hypoglycémie" highLabel="Hyperglycémie" colorStops="linear-gradient(to right,#C1292E 0%,#C75B2A 15%,#F4C95D 22%,#4A7C59 30%,#4A7C59 55%,#F4C95D 65%,#C75B2A 80%,#C1292E 100%)"/>
+            <Gauge label="Trou anionique (TA)" value={bgTACalc||bgTAMeasured} min={0} max={40} unit="mmol/L" low={0} high={20} lowLabel="" highLabel="Augmenté" normalLabel="Normal" colorStops="linear-gradient(to right,#4A7C59 0%,#4A7C59 45%,#F4C95D 55%,#C75B2A 70%,#C1292E 100%)"/>
+            {(bgTACalc||bgTAMeasured)&&<div style={{
+              borderRadius:8,padding:"8px 12px",marginTop:-6,marginBottom:14,
+              background:parseFloat(bgTACalc||bgTAMeasured)>20?"rgba(193,41,46,0.06)":"rgba(74,124,89,0.06)",
+              border:`1px solid ${parseFloat(bgTACalc||bgTAMeasured)>20?"rgba(193,41,46,0.15)":"rgba(74,124,89,0.15)"}`,
+            }}>
+              <p style={{margin:0,fontSize:11,fontWeight:700,color:parseFloat(bgTACalc||bgTAMeasured)>20?"#C1292E":"#C75B2A",fontFamily:"system-ui,sans-serif"}}>
+                {parseFloat(bgTACalc||bgTAMeasured)>20
+                  ?"Acidose liée à une accumulation de lactate"
+                  :"Acidose liée à une perte de bicarbonates"}
+              </p>
+            </div>}
           </Card>
 
           <Card title="Analyse diarrhée" icon="🧪">
