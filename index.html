@@ -454,7 +454,7 @@ const App = () => {
     const hasAcidosis = !isNaN(be) && be < -5;
     const hasHypoglycemia = !isNaN(gly) && gly < 60;
     const needsIV = d >= 5 || canStand === false || hasAcidosis || hasHypoglycemia;
-    const ivVolume = needsIV ? Math.min(deficit * 0.5, w * 0.08) : 0;
+    const ivVolume = needsIV ? deficit : 0;
     const oralVolume = totalVolume - ivVolume;
     const maxPerFeed = Math.min(2, w * 0.05);
     const numberOfFeeds = Math.ceil(oralVolume / maxPerFeed);
@@ -554,10 +554,12 @@ const App = () => {
     <div class="row"><span class="lbl">Âge :</span><span>${calfAge?calfAge+" j":"—"}</span></div>
     <div class="row"><span class="lbl">Poids :</span><span>${calfWeight?calfWeight+" kg":"—"}</span></div>
     <div class="row"><span class="lbl">Déshydratation :</span><span style="color:${sevColor(calfDehydration||0)};font-weight:bold;">${calfDehydration?calfDehydration+"%":"—"}</span></div>
-    <div style="margin-top:8px;"><strong>Température : ${!isNaN(temp)?temp+"°C":"—"}</strong>${!isNaN(temp)?gBar(temp,35,42,gCol(temp,37.5,39.5)):""}</div>
-    <div style="margin-top:6px;"><strong>pH : ${!isNaN(pH)?pH:"—"}</strong>${!isNaN(pH)?gBar(pH,6.8,7.7,gCol(pH,7.35,7.5)):""}</div>
-    <div style="margin-top:6px;"><strong>BE : ${!isNaN(be)?Math.abs(be)+" mmol/L":"—"}</strong>${!isNaN(be)?gBar(Math.abs(be),0,30,gCol(Math.abs(be),0,5)):""}</div>
-    <div style="margin-top:6px;"><strong>HCO₃⁻ : ${!isNaN(hco3)?hco3+" mmol/L":"—"}</strong>${!isNaN(hco3)?gBar(hco3,5,40,gCol(hco3,22,30)):""}</div></div>
+    <div style="margin-top:8px;"><strong>Température : ${!isNaN(temp)?temp+"°C":"—"}</strong> <span style="font-size:8.5pt;color:#888;">(N : 38,5 – 39,5 °C)</span>${!isNaN(temp)?gBar(temp,35,42,gCol(temp,37.5,39.5)):""}</div>
+    <div style="margin-top:6px;"><strong>pH : ${!isNaN(pH)?pH:"—"}</strong> <span style="font-size:8.5pt;color:#888;">(N : 7,35 – 7,45)</span>${!isNaN(pH)?gBar(pH,6.8,7.7,gCol(pH,7.35,7.45)):""}</div>
+    <div style="margin-top:6px;"><strong>BE : ${!isNaN(be)?be.toFixed(1)+" mmol/L":"—"}</strong> <span style="font-size:8.5pt;color:#888;">(N : −2 à +2 mmol/L)</span>${!isNaN(be)?gBar(Math.abs(be),0,30,gCol(Math.abs(be),0,5)):""}</div>
+    <div style="margin-top:6px;"><strong>HCO₃⁻ : ${!isNaN(hco3)?hco3+" mmol/L":"—"}</strong> <span style="font-size:8.5pt;color:#888;">(N : 22 – 30 mmol/L)</span>${!isNaN(hco3)?gBar(hco3,5,40,gCol(hco3,22,30)):""}</div>
+    ${(()=>{const na=parseFloat(bgNa),k=parseFloat(bgK),cl=parseFloat(bgCl),glu=parseFloat(bgGlucose),tam=parseFloat(bgTAMeasured);const tac=computedTA;return ``
+    +(!isNaN(na)?`<div style="margin-top:6px;"><strong>Na⁺ : ${na} mmol/L</strong> <span style="font-size:8.5pt;color:#888;">(N : 135 – 145 mmol/L)</span>${gBar(na,120,160,gCol(na,135,145))}</div>`:``)+(!isNaN(k)?`<div style="margin-top:6px;"><strong>K⁺ : ${k} mmol/L</strong> <span style="font-size:8.5pt;color:#888;">(N : 3,5 – 5,5 mmol/L)</span>${gBar(k,2,8,gCol(k,3.5,5.5))}</div>`:``)+(!isNaN(cl)?`<div style="margin-top:6px;"><strong>Cl⁻ : ${cl} mmol/L</strong> <span style="font-size:8.5pt;color:#888;">(N : 95 – 110 mmol/L)</span>${gBar(cl,80,130,gCol(cl,95,110))}</div>`:``)+(!isNaN(glu)?`<div style="margin-top:6px;"><strong>Glucose : ${glu} mg/dL</strong> <span style="font-size:8.5pt;color:#888;">(N : 60 – 120 mg/dL)</span>${gBar(glu,20,200,gCol(glu,60,120))}</div>`:``)+(tac!==null?`<div style="margin-top:6px;"><strong>TA calculé : ${tac.toFixed(1)} mmol/L</strong> <span style="font-size:8.5pt;color:#888;">(N : 10 – 20 mmol/L)</span>${gBar(tac,0,40,gCol(tac,10,20))}</div><div style="font-size:8.5pt;margin-top:2px;color:${tac>20?'#C1292E':'#C75B2A'};">${tac>20?'⬆ TA augmenté — Acidose liée à une accumulation de lactate':'TA normal — Acidose liée à une perte de bicarbonates'}</div>`:``)+(!isNaN(tam)?`<div style="margin-top:6px;"><strong>TA mesuré : ${tam} mmol/L</strong> <span style="font-size:8.5pt;color:#888;">(N : 10 – 20 mmol/L)</span></div>`:``);})()}</div>
 
     <div class="section"><h2>🧪 Analyse diarrhée</h2>
     ${pos.length?`<div style="margin-bottom:4px;"><span class="test-pos">＋ Positif :</span> ${pos.join(", ")}</div>`:""}
@@ -570,7 +572,7 @@ const App = () => {
     <div class="row"><span class="lbl">Pertes :</span><span>${perfusion.ongoingLosses} L</span></div>
     <div class="total-row"><span>Volume total 24h</span><span>${perfusion.totalVolume} L</span></div>
     ${perfusion.needsIV?`<div class="pbox"><h3>Voie IV</h3>
-    <div class="row"><span class="lbl">Volume IV :</span><span>${perfusion.ivVolume} L (= ½ du déficit)</span></div>
+    <div class="row"><span class="lbl">Volume IV :</span><span>${perfusion.ivVolume} L (= déficit à combler)</span></div>
     ${parseFloat(perfusion.bicarb_mmol)>0?`<div class="row"><span class="lbl">NaHCO₃ :</span><span>${perfusion.bicarb_g} g</span></div>`:""}
     ${perfusion.kSupplement?`<div class="row"><span class="lbl">K⁺ :</span><span>${perfusion.kSupplement}</span></div>`:""}
     ${perfusion.glucoseSupplement?`<div class="row"><span class="lbl">Glycémie :</span><span style="color:${perfusion.glycemiaAlert==="danger"?"#C1292E":"#C75B2A"}">${perfusion.glucoseSupplement}</span></div>`:""}</div>`:""}
@@ -805,7 +807,7 @@ const App = () => {
 
             {perfusion.needsIV&&<Card title="Voie intraveineuse" icon="💉">
               <div style={{fontSize:13,color:"#5A4530",fontFamily:"system-ui,sans-serif",lineHeight:1.7}}>
-                <p style={{margin:"0 0 4px"}}><strong>Volume IV :</strong> {perfusion.ivVolume} L (= ½ du déficit)</p>
+                <p style={{margin:"0 0 4px"}}><strong>Volume IV :</strong> {perfusion.ivVolume} L (= déficit à combler)</p>
                 {parseFloat(perfusion.bicarb_mmol)>0&&<div style={{background:"rgba(160,120,76,0.08)",borderRadius:8,padding:"10px 12px",margin:"8px 0",border:"1px solid rgba(160,120,76,0.2)"}}>
                   <p style={{margin:"0 0 3px",fontWeight:700,color:"#A0784C"}}>NaHCO₃</p>
                   <p style={{margin:0}}><strong>{perfusion.bicarb_g} g</strong> de bicarbonate de sodium</p>
@@ -984,7 +986,7 @@ const App = () => {
               <span style={{fontSize:16,fontWeight:800,color:sevColor(perfusion.dehydrationPercent),fontFamily:"'Georgia',serif"}}>{perfusion.totalVolume} L</span>
             </div>
             {perfusion.needsIV&&<div style={{fontSize:12,fontFamily:"system-ui,sans-serif",color:"#5A4530",lineHeight:1.6,marginBottom:6}}>
-              <p style={{margin:"0 0 2px"}}><strong>IV :</strong> {perfusion.ivVolume} L (= ½ du déficit)</p>
+              <p style={{margin:"0 0 2px"}}><strong>IV :</strong> {perfusion.ivVolume} L (= déficit à combler)</p>
               {parseFloat(perfusion.bicarb_mmol)>0&&<p style={{margin:"0 0 2px"}}><strong>NaHCO₃ :</strong> {perfusion.bicarb_g} g</p>}
               {perfusion.glucoseSupplement&&<p style={{margin:"0 0 2px",color:perfusion.glycemiaAlert==="danger"?"#C1292E":"#C75B2A"}}><strong>🩸 </strong>{perfusion.glucoseSupplement}</p>}
             </div>}
